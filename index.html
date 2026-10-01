@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Scan Vegan">
 <meta name="theme-color" content="#0a0e1a">
-<title>Scan Vegan & Santé</title>
+<title>Scan Vegan & Sante</title>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -67,8 +67,8 @@ button.small{padding:0.6rem;font-size:0.85rem;margin-top:0.4rem}
 </head>
 <body>
 
-<h1>🔍 Scan Vegan & Santé</h1>
-<p class="sub">Analyse complète de ton produit</p>
+<h1>🔍 Scan Vegan & Sante</h1>
+<p class="sub">Analyse complete de ton produit</p>
 
 <div class="tabs">
   <div class="tab active" data-tab="scan">📷 Scanner</div>
@@ -81,10 +81,10 @@ button.small{padding:0.6rem;font-size:0.85rem;margin-top:0.4rem}
     <div class="lbl">📷 Code-barres du produit</div>
     <input type="text" id="barcode" placeholder="Ex : 3017620422003" inputmode="numeric" autocomplete="off" enterkeyhint="search">
     <button class="primary" id="btnScan">🔍 Analyser</button>
-    <button class="primary camera" id="btnCamera">📷 Scanner avec la caméra</button>
+    <button class="primary camera" id="btnCamera">📷 Scanner avec la camera</button>
     <div id="cameraZone" class="hidden" style="margin-top:1rem">
       <div id="reader"></div>
-      <button class="primary stop" id="btnStopCamera">❌ Arrêter la caméra</button>
+      <button class="primary stop" id="btnStopCamera">❌ Arreter la camera</button>
     </div>
   </div>
   <div id="result"></div>
@@ -94,7 +94,7 @@ button.small{padding:0.6rem;font-size:0.85rem;margin-top:0.4rem}
   <div class="panel">
     <div class="lbl">⚖️ Comparer 2 produits</div>
     <input type="text" id="cmp1" placeholder="1er code-barres" inputmode="numeric" autocomplete="off">
-    <input type="text" id="cmp2" placeholder="2ème code-barres" inputmode="numeric" autocomplete="off" style="margin-top:0.5rem">
+    <input type="text" id="cmp2" placeholder="2eme code-barres" inputmode="numeric" autocomplete="off" style="margin-top:0.5rem">
     <button class="primary" id="btnCompare">⚖️ Comparer</button>
   </div>
   <div id="compareResult"></div>
@@ -103,199 +103,202 @@ button.small{padding:0.6rem;font-size:0.85rem;margin-top:0.4rem}
 <div id="tab-history" class="hidden">
   <div class="panel">
     <div class="lbl">📜 Derniers scans</div>
-    <button class="primary small" id="btnClearHist" style="background:#c0392b">🗑️ Effacer l'historique</button>
+    <button class="primary small" id="btnClearHist" style="background:#c0392b">🗑️ Effacer historique</button>
   </div>
   <div id="historyList"></div>
 </div>
 
-<div class="note">Données Open Food Facts · Analyse locale</div>
+<div class="note">Donnees Open Food Facts · Analyse locale</div>
 <script>
 // ========================================================
-// 🐜 INSECTES AUTORISÉS EN SUISSE + UE
+// INSECTES
 // ========================================================
 const INSECT_KEYWORDS = [
-  'tenebrio molitor','ver de farine','mehlwurm','mealworm','vers de farine',
-  'acheta domesticus','grillon','grillons','cricket','heimchen',
-  'locusta migratoria','criquet','criquets','locust','wanderheuschrecke',
-  'alphitobius diaperinus','petit ténébrion','buffalo worm','ténébrion',
-  'insecte','insect','insectes','farine d\'insecte','farine d insecte',
-  'poudre de larve','poudre de larves','protéine d\'insecte','proteine d\'insecte',
-  'protéines d\'insectes','chitine','larve','larves'
+  "tenebrio molitor","ver de farine","mehlwurm","mealworm","vers de farine",
+  "acheta domesticus","grillon","grillons","cricket","heimchen",
+  "locusta migratoria","criquet","criquets","locust","wanderheuschrecke",
+  "alphitobius diaperinus","petit tenebrion","buffalo worm","tenebrion",
+  "insecte","insect","insectes","farine insecte","poudre de larve",
+  "poudre de larves","proteine insecte","proteines insectes","chitine","larve","larves"
 ];
 
 // ========================================================
-// 🌱 INGRÉDIENTS NON VEGAN
+// NON VEGAN
 // ========================================================
 const NON_VEGAN_KEYWORDS = [
-  'lait','milk','beurre','butter','crème','creme','cream','fromage','cheese',
-  'yaourt','yogurt','yoghurt','lactose','caséine','casein','caseinate',
-  'lactosérum','whey','petit-lait','babeurre','buttermilk','ghee',
-  'mascarpone','ricotta','mozzarella','parmesan',
-  'oeuf','œuf','oeufs','œufs','egg','eggs','albumen','ovalbumine','lysozyme',
-  'miel','honey','cire d\'abeille','beeswax','propolis','gelée royale',
-  'viande','meat','poulet','chicken','boeuf','bœuf','beef','porc','pork',
-  'jambon','ham','agneau','lamb','veau','veal','canard','duck','dinde','turkey',
-  'gibier','lapin','rabbit','cheval','horse','mouton','mutton',
-  'saucisse','sausage','saucisson','bacon','lardon','chorizo','salami',
-  'pâté','terrine','rillettes','foie','abats',
-  'poisson','fish','thon','tuna','saumon','salmon','cabillaud','cod',
-  'crevette','shrimp','crabe','crab','homard','lobster','langouste',
-  'moule','mussel','huître','huitre','oyster','anchois','anchovy',
-  'sardine','maquereau','truite','trout','sole','raie','requin','shark',
-  'calamar','squid','poulpe','octopus','seiche','surimi','tarama','caviar',
-  'gélatine','gelatin','graisse animale','animal fat','saindoux','lard',
-  'suif','tallow','bouillon','broth','extrait de viande','extrait de poulet',
-  'e120','e904','e901','e920','e921','e913','e1105','e441','e542',
-  'cochenille','cochineal','carmine','carmin','shellac','lécithine','lecitin',
-  'acide carminique','lanoline','cholestérol','cysteine',
-  'collagène','collagen','élastine','elastin','kératine','keratin',
-  'pepsine','pepsin','présure','rennet','chymosine'
+  "lait","milk","beurre","butter","creme","cream","fromage","cheese",
+  "yaourt","yogurt","yoghurt","lactose","caseine","casein","caseinate",
+  "lactoserum","whey","petit-lait","babeurre","buttermilk","ghee",
+  "mascarpone","ricotta","mozzarella","parmesan",
+  "oeuf","uf","oeufs","ufs","egg","eggs","albumen","ovalbumine","lysozyme",
+  "miel","honey","cire abeille","beeswax","propolis","gelee royale",
+  "viande","meat","poulet","chicken","boeuf","buf","beef","porc","pork",
+  "jambon","ham","agneau","lamb","veau","veal","canard","duck","dinde","turkey",
+  "gibier","lapin","rabbit","cheval","horse","mouton","mutton",
+  "saucisse","sausage","saucisson","bacon","lardon","chorizo","salami",
+  "pate","terrine","rillettes","foie","abats",
+  "poisson","fish","thon","tuna","saumon","salmon","cabillaud","cod",
+  "crevette","shrimp","crabe","crab","homard","lobster","langouste",
+  "moule","mussel","huitre","oyster","anchois","anchovy",
+  "sardine","maquereau","truite","trout","sole","raie","requin","shark",
+  "calamar","squid","poulpe","octopus","seiche","surimi","tarama","caviar",
+  "gelatine","gelatin","graisse animale","animal fat","saindoux","lard",
+  "suif","tallow","bouillon","broth","extrait viande","extrait poulet",
+  "e120","e904","e901","e920","e921","e913","e1105","e441","e542",
+  "cochenille","cochineal","carmine","carmin","shellac","lecithine","lecitin",
+  "acide carminique","lanoline","cholesterol","cysteine",
+  "collagene","collagen","elastine","elastin","keratine","keratin",
+  "pepsine","pepsin","presure","rennet","chymosine"
 ];
 
 // ========================================================
-// 🇨🇭 ADDITIFS CONTROVERSÉS
+// ADDITIFS CONTROVERSES
 // ========================================================
 const HEALTH_WARNINGS = {
-  'e249':{level:'danger',msg:'Nitrite de potassium — composés cancérigènes'},
-  'e250':{level:'danger',msg:'Nitrite de sodium — composés cancérigènes'},
-  'e251':{level:'danger',msg:'Nitrate de sodium — précurseur de nitrites'},
-  'e252':{level:'danger',msg:'Nitrate de potassium — précurseur de nitrites'},
-  'e202':{level:'warn',msg:'Sorbate de potassium — risque d\'hypertension'},
-  'e200':{level:'warn',msg:'Acide sorbique — conservateur'},
-  'e150a':{level:'warn',msg:'Colorant caramel — associé au diabète type 2'},
-  'e150b':{level:'warn',msg:'Caramel sulfite — controversé'},
-  'e150c':{level:'warn',msg:'Caramel ammoniacal — controversé'},
-  'e150d':{level:'warn',msg:'Caramel sulfite-ammoniacal — controversé'},
-  'e120':{level:'danger',msg:'Rouge cochenille — extrait d\'insectes'},
-  'e904':{level:'danger',msg:'Shellac — résine d\'insecte'},
-  'e901':{level:'warn',msg:'Cire d\'abeille — non végétalien'},
-  'e621':{level:'warn',msg:'Glutamate monosodique — sensibilité possible'},
-  'e951':{level:'warn',msg:'Aspartame — sujet à débat'},
-  'e952':{level:'warn',msg:'Cyclamate — controversé'},
-  'e954':{level:'warn',msg:'Saccharine — controverse historique'},
-  'e955':{level:'warn',msg:'Sucralose — controverse'},
-  'e220':{level:'warn',msg:'Anhydride sulfureux — allergène'},
-  'e221':{level:'warn',msg:'Sulfite de sodium — allergène'},
-  'e222':{level:'warn',msg:'Sulfite acide de sodium — allergène'},
-  'e223':{level:'warn',msg:'Disulfite de sodium — allergène'},
-  'e224':{level:'warn',msg:'Disulfite de potassium — allergène'},
-  'e226':{level:'warn',msg:'Sulfite de calcium — allergène'},
-  'e227':{level:'warn',msg:'Sulfite acide de calcium — allergène'},
-  'e228':{level:'warn',msg:'Sulfite acide de potassium — allergène'},
-  'e102':{level:'warn',msg:'Tartrazine — colorant azoïque controversé'},
-  'e104':{level:'warn',msg:'Jaune de quinoléine — colorant controversé'},
-  'e110':{level:'warn',msg:'Jaune orangé S — colorant azoïque'},
-  'e122':{level:'warn',msg:'Azorubine — colorant azoïque'},
-  'e124':{level:'warn',msg:'Ponceau 4R — colorant azoïque'},
-  'e129':{level:'warn',msg:'Rouge allura — colorant azoïque'},
-  'e171':{level:'danger',msg:'Dioxyde de titane — interdit dans l\'UE depuis 2022'},
-  'e320':{level:'warn',msg:'BHA — antioxydant controversé'},
-  'e321':{level:'warn',msg:'BHT — antioxydant controversé'},
-  'e407':{level:'warn',msg:'Carraghénanes — inflammation possible'},
-  'e415':{level:'warn',msg:'Xanthane — peut causer ballonnements'},
-  'e950':{level:'warn',msg:'Acésulfame K — controverse'},
-  'e961':{level:'warn',msg:'Néotame — controverse'}
+  "e249":{level:"danger",msg:"Nitrite de potassium - composes cancerigenes"},
+  "e250":{level:"danger",msg:"Nitrite de sodium - composes cancerigenes"},
+  "e251":{level:"danger",msg:"Nitrate de sodium - precurseur de nitrites"},
+  "e252":{level:"danger",msg:"Nitrate de potassium - precurseur de nitrites"},
+  "e202":{level:"warn",msg:"Sorbate de potassium - risque hypertension"},
+  "e200":{level:"warn",msg:"Acide sorbique - conservateur"},
+  "e150a":{level:"warn",msg:"Colorant caramel - associe au diabete type 2"},
+  "e150b":{level:"warn",msg:"Caramel sulfite - controverse"},
+  "e150c":{level:"warn",msg:"Caramel ammoniacal - controverse"},
+  "e150d":{level:"warn",msg:"Caramel sulfite-ammoniacal - controverse"},
+  "e120":{level:"danger",msg:"Rouge cochenille - extrait insectes"},
+  "e904":{level:"danger",msg:"Shellac - resine insecte"},
+  "e901":{level:"warn",msg:"Cire abeille - non vegetalien"},
+  "e621":{level:"warn",msg:"Glutamate monosodique - sensibilite possible"},
+  "e951":{level:"warn",msg:"Aspartame - sujet a debat"},
+  "e952":{level:"warn",msg:"Cyclamate - controverse"},
+  "e954":{level:"warn",msg:"Saccharine - controverse"},
+  "e955":{level:"warn",msg:"Sucralose - controverse"},
+  "e220":{level:"warn",msg:"Anhydride sulfureux - allergene"},
+  "e221":{level:"warn",msg:"Sulfite de sodium - allergene"},
+  "e222":{level:"warn",msg:"Sulfite acide de sodium - allergene"},
+  "e223":{level:"warn",msg:"Disulfite de sodium - allergene"},
+  "e224":{level:"warn",msg:"Disulfite de potassium - allergene"},
+  "e226":{level:"warn",msg:"Sulfite de calcium - allergene"},
+  "e227":{level:"warn",msg:"Sulfite acide de calcium - allergene"},
+  "e228":{level:"warn",msg:"Sulfite acide de potassium - allergene"},
+  "e102":{level:"warn",msg:"Tartrazine - colorant azoique"},
+  "e104":{level:"warn",msg:"Jaune de quinoleine - colorant"},
+  "e110":{level:"warn",msg:"Jaune orange S - colorant azoique"},
+  "e122":{level:"warn",msg:"Azorubine - colorant azoique"},
+  "e124":{level:"warn",msg:"Ponceau 4R - colorant azoique"},
+  "e129":{level:"warn",msg:"Rouge allura - colorant azoique"},
+  "e171":{level:"danger",msg:"Dioxyde de titane - interdit UE depuis 2022"},
+  "e320":{level:"warn",msg:"BHA - antioxydant controverse"},
+  "e321":{level:"warn",msg:"BHT - antioxydant controverse"},
+  "e407":{level:"warn",msg:"Carraghenanes - inflammation possible"},
+  "e415":{level:"warn",msg:"Xanthane - peut causer ballonnements"},
+  "e950":{level:"warn",msg:"Acesulfame K - controverse"},
+  "e961":{level:"warn",msg:"Neotame - controverse"}
 };
 
 // ========================================================
-// 🚨 ALLERGÈNES (14 majeurs UE)
+// ALLERGENES
 // ========================================================
 const ALLERGEN_MAP = {
-  'gluten':'🌾 Gluten','cereals-containing-gluten':'🌾 Gluten',
-  'crustaceans':'🦐 Crustacés','eggs':'🥚 Œufs','fish':'🐟 Poisson',
-  'peanuts':'🥜 Arachides','soybeans':'🫘 Soja','milk':'🥛 Lait',
-  'nuts':'🌰 Fruits à coque','celery':'🥬 Céleri','mustard':'🌭 Moutarde',
-  'sesame-seeds':'⚪ Sésame','sulphur-dioxide-and-sulphites':'💨 Sulfites',
-  'lupin':'🌸 Lupin','molluscs':'🦑 Mollusques'
+  "gluten":"Gluten","cereals-containing-gluten":"Gluten",
+  "crustaceans":"Crustaces","eggs":"Oeufs","fish":"Poisson",
+  "peanuts":"Arachides","soybeans":"Soja","milk":"Lait",
+  "nuts":"Fruits a coque","celery":"Celeri","mustard":"Moutarde",
+  "sesame-seeds":"Sesame","sulphur-dioxide-and-sulphites":"Sulfites",
+  "lupin":"Lupin","molluscs":"Mollusques"
 };
 
 // ========================================================
-// 🔍 DÉTECTIONS
+// DETECTIONS
 // ========================================================
 function detectInsects(texte){
   if(!texte) return [];
   const t=texte.toLowerCase();
-  return [...new Set(INSECT_KEYWORDS.filter(k=>t.includes(k)))];
+  return [...new Set(INSECT_KEYWORDS.filter(function(k){return t.indexOf(k)!==-1}))];
 }
 function detectNonVegan(texte){
   if(!texte) return [];
   const t=texte.toLowerCase();
-  return [...new Set(NON_VEGAN_KEYWORDS.filter(k=>t.includes(k)))];
+  return [...new Set(NON_VEGAN_KEYWORDS.filter(function(k){return t.indexOf(k)!==-1}))];
 }
 function detectHealthWarnings(additifs){
   if(!additifs) return [];
   const t=additifs.toLowerCase();
   const trouves=[];
-  for(const [code,info] of Object.entries(HEALTH_WARNINGS)){
-    if(t.includes(code)||t.includes('en:'+code)) trouves.push({code:code.toUpperCase(),...info});
+  const keys=Object.keys(HEALTH_WARNINGS);
+  for(let i=0;i<keys.length;i++){
+    const code=keys[i];
+    if(t.indexOf(code)!==-1||t.indexOf("en:"+code)!==-1){
+      const info=HEALTH_WARNINGS[code];
+      trouves.push({code:code.toUpperCase(),level:info.level,msg:info.msg});
+    }
   }
   return trouves;
 }
 function detectAllergens(tags){
   if(!tags||!tags.length) return [];
-  return [...new Set(tags.map(a=>{
-    const k=a.replace('en:','');
-    return ALLERGEN_MAP[k]||('⚠️ '+k);
+  return [...new Set(tags.map(function(a){
+    const k=a.replace("en:","");
+    return ALLERGEN_MAP[k]||("? "+k);
   }))];
 }
 
 // ========================================================
-// 📊 SCORE GLOBAL /100 (corrigé)
-// Base : Nutri-Score A=95, B=75, C=60, D=42, E=25
-// Les allergènes NE pénalisent PAS le score.
+// SCORE GLOBAL /100
 // ========================================================
-function calculerScore(nonVegan,insectes,alertes,nutriscore,allergenes){
+function calculerScore(nonVegan,insectes,alertes,nutriscore){
   let score;
-  if(nutriscore==='A') score=95;
-  else if(nutriscore==='B') score=75;
-  else if(nutriscore==='C') score=60;
-  else if(nutriscore==='D') score=42;
-  else if(nutriscore==='E') score=25;
+  if(nutriscore==="A") score=95;
+  else if(nutriscore==="B") score=75;
+  else if(nutriscore==="C") score=60;
+  else if(nutriscore==="D") score=42;
+  else if(nutriscore==="E") score=25;
   else score=60;
 
   score-=Math.min(nonVegan.length*5,30);
   if(insectes.length>0) score-=25;
-  alertes.forEach(a=>{score-=(a.level==='danger'?8:4)});
-
+  for(let i=0;i<alertes.length;i++){
+    score-=(alertes[i].level==="danger"?8:4);
+  }
   return Math.max(0,Math.min(100,score));
 }
 function scoreColor(s){
-  if(s>=85) return '#2d8a4e';
-  if(s>=70) return '#6ee7a3';
-  if(s>=50) return '#d4a017';
-  if(s>=30) return '#e07070';
-  return '#c0392b';
+  if(s>=85) return "#2d8a4e";
+  if(s>=70) return "#6ee7a3";
+  if(s>=50) return "#d4a017";
+  if(s>=30) return "#e07070";
+  return "#c0392b";
 }
 function scoreLabel(s){
-  if(s>=85) return 'EXCELLENT';
-  if(s>=70) return 'BON';
-  if(s>=50) return 'MOYEN';
-  if(s>=30) return 'MAUVAIS';
-  return 'À ÉVITER';
+  if(s>=85) return "EXCELLENT";
+  if(s>=70) return "BON";
+  if(s>=50) return "MOYEN";
+  if(s>=30) return "MAUVAIS";
+  return "A EVITER";
 }
 
 // ========================================================
-// 💾 CACHE + HISTORIQUE
+// CACHE + HISTORIQUE
 // ========================================================
-const CACHE_KEY='svs_cache_v3';
-const HIST_KEY='svs_hist_v3';
-function getCache(){try{return JSON.parse(localStorage.getItem(CACHE_KEY)||'{}')}catch(e){return{}}}
+const CACHE_KEY="svs_cache_v3";
+const HIST_KEY="svs_hist_v3";
+function getCache(){try{return JSON.parse(localStorage.getItem(CACHE_KEY)||"{}")}catch(e){return{}}}
 function setCache(c){try{localStorage.setItem(CACHE_KEY,JSON.stringify(c))}catch(e){}}
-function getHist(){try{return JSON.parse(localStorage.getItem(HIST_KEY)||'[]')}catch(e){return[]}}
+function getHist(){try{return JSON.parse(localStorage.getItem(HIST_KEY)||"[]")}catch(e){return[]}}
 function setHist(h){try{localStorage.setItem(HIST_KEY,JSON.stringify(h.slice(0,20)))}catch(e){}}
 function ajouterHist(item){
-  const h=getHist().filter(x=>x.code!==item.code);
+  const h=getHist().filter(function(x){return x.code!==item.code});
   h.unshift(item);
   setHist(h);
 }
 
 // ========================================================
-// 🌐 CHARGEMENT PRODUIT
+// CHARGEMENT PRODUIT
 // ========================================================
 async function chargerProduit(code){
   const cache=getCache();
   if(cache[code]) return cache[code];
-  const url=`https://world.openfoodfacts.org/api/v2/product/${code}.json?fields=product_name,product_name_fr,ingredients_text,ingredients_text_fr,additives_tags,allergens_tags,nutriscore_grade,brands,categories,image_front_small_url,image_url,quantity,countries`;
+  const url="https://world.openfoodfacts.org/api/v2/product/"+code+".json?fields=product_name,product_name_fr,ingredients_text,ingredients_text_fr,additives_tags,allergens_tags,nutriscore_grade,brands,categories,image_front_small_url,image_url,quantity,countries";
   const r=await fetch(url);
   const d=await r.json();
   if(d.product){
@@ -306,250 +309,258 @@ async function chargerProduit(code){
 }
 
 // ========================================================
-// 🎯 RENDU PRODUIT
+// RENDU PRODUIT
 // ========================================================
 function renderProduit(p,code,targetId){
   const zone=document.getElementById(targetId);
   if(!p){
-    zone.innerHTML='<div class="error">❌ Produit introuvable.<br><br>Essaie un autre code-barres.</div>';
+    zone.innerHTML='<div class="error">Produit introuvable.<br><br>Essaie un autre code-barres.</div>';
     return;
   }
-  const ingredients=p.ingredients_text_fr||p.ingredients_text||'';
+  const ingredients=p.ingredients_text_fr||p.ingredients_text||"";
   const additifsListe=p.additives_tags||[];
-  const additifsTexte=additifsListe.join(' ');
-  const nom=p.product_name_fr||p.product_name||'Produit sans nom';
-  const marque=p.brands||'';
+  const additifsTexte=additifsListe.join(" ");
+  const nom=p.product_name_fr||p.product_name||"Produit sans nom";
+  const marque=p.brands||"";
   const nutriscore=p.nutriscore_grade?p.nutriscore_grade.toUpperCase():null;
   const image=p.image_front_small_url||p.image_url||null;
   const allergenesTags=p.allergens_tags||[];
 
   const insectes=detectInsects(ingredients);
   const nonVegan=detectNonVegan(ingredients);
-  const nonVeganAdd=additifsListe.filter(a=>a.includes('e120')||a.includes('e904')||a.includes('e901')||a.includes('e920')||a.includes('e921')||a.includes('e1105'));
+  const nonVeganAdd=additifsListe.filter(function(a){
+    return a.indexOf("e120")!==-1||a.indexOf("e904")!==-1||a.indexOf("e901")!==-1||
+           a.indexOf("e920")!==-1||a.indexOf("e921")!==-1||a.indexOf("e1105")!==-1;
+  });
   const tousNonVegan=[...new Set([...nonVegan,...nonVeganAdd])];
   const alertes=detectHealthWarnings(additifsTexte);
   const allergenes=detectAllergens(allergenesTags);
-  const score=calculerScore(tousNonVegan,insectes,alertes,nutriscore,allergenes);
+  const score=calculerScore(tousNonVegan,insectes,alertes,nutriscore);
 
-  let html='';
+  let html="";
 
   if(image){
-    html+=`<div class="card"><img src="${image}" class="product-img" alt="produit" onerror="this.style.display='none'"></div>`;
+    html+='<div class="card"><img src="'+image+'" class="product-img" alt="produit" onerror="this.style.display=\'none\'"></div>';
   }
 
-  html+=`<div class="card">
-    <h3>${marque?marque+' — ':''}${nom}</h3>
-    <div style="font-size:0.75rem;color:#8892b0;margin-top:0.3rem">Code-barres : ${code}</div>
-    <div class="score-circle" style="background:${scoreColor(score)}">${score}</div>
-    <div style="text-align:center;font-weight:700;color:${scoreColor(score)};font-size:0.9rem">${scoreLabel(score)} / 100</div>
-  </div>`;
+  html+='<div class="card">'+
+    '<h3>'+(marque?marque+" - ":"")+nom+'</h3>'+
+    '<div style="font-size:0.75rem;color:#8892b0;margin-top:0.3rem">Code-barres : '+code+'</div>'+
+    '<div class="score-circle" style="background:'+scoreColor(score)+'">'+score+'</div>'+
+    '<div style="text-align:center;font-weight:700;color:'+scoreColor(score)+';font-size:0.9rem">'+scoreLabel(score)+' / 100</div>'+
+  '</div>';
 
   const estVegan=tousNonVegan.length===0;
-  html+=`<div class="card ${estVegan?'good':'bad'}">
-    <div class="lbl">🌱 Analyse Vegan</div>
-    <span class="badge ${estVegan?'vegan':'nonvegan'}">${estVegan?'✅ VEGAN':'❌ NON VEGAN'}</span>
-    ${!estVegan?`<div style="margin-top:0.7rem;font-size:0.82rem;color:#e07070"><strong>Détecté :</strong> ${tousNonVegan.slice(0,8).join(', ')}${tousNonVegan.length>8?'…':''}</div>`:''}
-  </div>`;
+  html+='<div class="card '+(estVegan?"good":"bad")+'">'+
+    '<div class="lbl">Analyse Vegan</div>'+
+    '<span class="badge '+(estVegan?"vegan":"nonvegan")+'">'+(estVegan?"VEGAN":"NON VEGAN")+'</span>';
+  if(!estVegan){
+    html+='<div style="margin-top:0.7rem;font-size:0.82rem;color:#e07070"><strong>Detecte :</strong> '+tousNonVegan.slice(0,8).join(", ")+(tousNonVegan.length>8?"...":"")+'</div>';
+  }
+  html+='</div>';
 
-  html+=`<div class="card ${insectes.length>0?'warn':'good'}">
-    <div class="lbl">🐜 Alerte Insectes</div>
-    <span class="badge ${insectes.length>0?'insect':'vegan'}">${insectes.length>0?'⚠️ INSECTES DÉTECTÉS':'✅ Aucun insecte'}</span>
-    ${insectes.length>0?`<div style="margin-top:0.7rem;font-size:0.82rem;color:#d4a017"><strong>Détecté :</strong> ${insectes.join(', ')}</div>`:''}
-    <div style="margin-top:0.6rem;font-size:0.7rem;color:#8892b0">Recherche : Tenebrio molitor · Acheta domesticus · Locusta migratoria · Alphitobius diaperinus</div>
-  </div>`;
+  html+='<div class="card '+(insectes.length>0?"warn":"good")+'">'+
+    '<div class="lbl">Alerte Insectes</div>'+
+    '<span class="badge '+(insectes.length>0?"insect":"vegan")+'">'+(insectes.length>0?"INSECTES DETECTES":"Aucun insecte")+'</span>';
+  if(insectes.length>0){
+    html+='<div style="margin-top:0.7rem;font-size:0.82rem;color:#d4a017"><strong>Detecte :</strong> '+insectes.join(", ")+'</div>';
+  }
+  html+='<div style="margin-top:0.6rem;font-size:0.7rem;color:#8892b0">Recherche : Tenebrio molitor - Acheta domesticus - Locusta migratoria - Alphitobius diaperinus</div>'+
+  '</div>';
 
   if(allergenes.length>0){
-    html+=`<div class="card warn">
-      <div class="lbl">🚨 Allergènes (${allergenes.length})</div>
-      ${allergenes.map(a=>`<span class="badge allergen">${a}</span>`).join('')}
-    </div>`;
+    html+='<div class="card warn"><div class="lbl">Allergenes ('+allergenes.length+')</div>'+
+      allergenes.map(function(a){return '<span class="badge allergen">'+a+'</span>'}).join("")+
+    '</div>';
   }else{
-    html+=`<div class="card good">
-      <div class="lbl">🚨 Allergènes</div>
-      <span class="badge health">✅ Aucun allergène majeur signalé</span>
-    </div>`;
+    html+='<div class="card good"><div class="lbl">Allergenes</div><span class="badge health">Aucun allergene signale</span></div>';
   }
 
-  const aDanger=alertes.some(a=>a.level==='danger');
-  const aWarn=alertes.some(a=>a.level==='warn');
-  html+=`<div class="card ${aDanger?'bad':aWarn?'warn':'good'}">
-    <div class="lbl">🇨🇭 Santé / Additifs</div>`;
+  const aDanger=alertes.some(function(a){return a.level==="danger"});
+  const aWarn=alertes.some(function(a){return a.level==="warn"});
+  html+='<div class="card '+(aDanger?"bad":aWarn?"warn":"good")+'">'+
+    '<div class="lbl">Sante / Additifs</div>';
   if(alertes.length===0){
-    html+=`<span class="badge health">✅ Aucun additif signalé</span>`;
+    html+='<span class="badge health">Aucun additif signale</span>';
   }else{
-    alertes.forEach(a=>{
-      html+=`<div class="row"><span class="row-label">${a.code}</span><span class="row-value ${a.level==='danger'?'bad':'warn'}">${a.msg}</span></div>`;
+    alertes.forEach(function(a){
+      html+='<div class="row"><span class="row-label">'+a.code+'</span><span class="row-value '+(a.level==="danger"?"bad":"warn")+'">'+a.msg+'</span></div>';
     });
   }
-  html+=`</div>`;
+  html+='</div>';
 
   if(additifsListe.length>0){
-    const codes=additifsListe.map(a=>a.replace('en:','').toUpperCase());
-    html+=`<div class="card"><div class="lbl">🧪 Tous les additifs (${codes.length})</div><div style="font-size:0.8rem;color:#8892b0;line-height:1.8">${codes.join(' · ')}</div></div>`;
+    const codes=additifsListe.map(function(a){return a.replace("en:","").toUpperCase()});
+    html+='<div class="card"><div class="lbl">Tous les additifs ('+codes.length+')</div><div style="font-size:0.8rem;color:#8892b0;line-height:1.8">'+codes.join(" - ")+'</div></div>';
   }
 
   if(nutriscore){
-    const c={A:'#2d8a4e',B:'#6ee7a3',C:'#d4a017',D:'#e07070',E:'#c0392b'};
-    html+=`<div class="card"><div class="lbl">📊 Nutri-Score</div><span class="badge" style="background:${c[nutriscore]||'#4a9eff'};color:#fff;font-size:1.2rem;padding:0.6rem 1.4rem">${nutriscore}</span></div>`;
+    const c={A:"#2d8a4e",B:"#6ee7a3",C:"#d4a017",D:"#e07070",E:"#c0392b"};
+    html+='<div class="card"><div class="lbl">Nutri-Score</div><span class="badge" style="background:'+(c[nutriscore]||"#4a9eff")+';color:#fff;font-size:1.2rem;padding:0.6rem 1.4rem">'+nutriscore+'</span></div>';
   }
 
-  html+=`<button class="btn-share" data-share='${JSON.stringify({nom,score,vegan:estVegan,insectes:insectes.length}).replace(/'/g,"&#39;")}'>📤 Partager le résultat</button>`;
+  const shareData={nom:nom,score:score,vegan:estVegan,insectes:insectes.length};
+  html+='<button class="btn-share" data-share="'+encodeURIComponent(JSON.stringify(shareData))+'">Partager le resultat</button>';
 
   zone.innerHTML=html;
 
-  const btn=zone.querySelector('.btn-share');
+  const btn=zone.querySelector(".btn-share");
   if(btn){
-    btn.addEventListener('click',async()=>{
-      const d=JSON.parse(btn.dataset.share);
-      const txt=`🔍 Scan Vegan & Santé\n\n📦 ${d.nom}\n⭐ Score : ${d.score}/100\n🌱 Vegan : ${d.vegan?'✅ Oui':'❌ Non'}\n🐜 Insectes : ${d.insectes>0?'⚠️ OUI':'✅ Aucun'}`;
+    btn.addEventListener("click",async function(){
+      const d=JSON.parse(decodeURIComponent(btn.dataset.share));
+      const txt="Scan Vegan & Sante\n\n"+d.nom+"\nScore : "+d.score+"/100\nVegan : "+(d.vegan?"Oui":"Non")+"\nInsectes : "+(d.insectes>0?"OUI":"Aucun");
       if(navigator.share){
-        try{await navigator.share({title:'Scan Vegan & Santé',text:txt})}catch(e){}
+        try{await navigator.share({title:"Scan Vegan & Sante",text:txt})}catch(e){}
       }else{
-        try{await navigator.clipboard.writeText(txt);alert('📋 Copié dans le presse-papiers !')}catch(e){alert(txt)}
+        try{await navigator.clipboard.writeText(txt);alert("Copie dans le presse-papiers !")}catch(e){alert(txt)}
       }
     });
   }
 
-  ajouterHist({code,nom,score,date:Date.now(),image});
+  ajouterHist({code:code,nom:nom,score:score,date:Date.now(),image:image});
 }
 
 // ========================================================
-// 🎯 ANALYSE
+// ANALYSE
 // ========================================================
 async function analyserCodeBarres(code){
-  const zone=document.getElementById('result');
-  zone.innerHTML='<div class="loading"><span class="spinner"></span>Recherche en cours…</div>';
+  const zone=document.getElementById("result");
+  zone.innerHTML='<div class="loading"><span class="spinner"></span>Recherche en cours...</div>';
   try{
     const p=await chargerProduit(code);
-    renderProduit(p,code,'result');
+    renderProduit(p,code,"result");
   }catch(e){
-    zone.innerHTML=`<div class="error">❌ Erreur réseau : ${e.message}<br><br>Vérifie ta connexion internet.</div>`;
+    zone.innerHTML='<div class="error">Erreur reseau : '+e.message+'<br><br>Verifie ta connexion internet.</div>';
   }
 }
 
 // ========================================================
-// ⚖️ COMPARAISON
+// COMPARAISON
 // ========================================================
 async function comparer(){
-  const z=document.getElementById('compareResult');
-  const c1=document.getElementById('cmp1').value.trim();
-  const c2=document.getElementById('cmp2').value.trim();
-  if(!c1||!c2){alert('Entre 2 codes-barres');return}
-  z.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
+  const z=document.getElementById("compareResult");
+  const c1=document.getElementById("cmp1").value.trim();
+  const c2=document.getElementById("cmp2").value.trim();
+  if(!c1||!c2){alert("Entre 2 codes-barres");return}
+  z.innerHTML='<div class="loading"><span class="spinner"></span>Chargement...</div>';
   try{
-    const [p1,p2]=await Promise.all([chargerProduit(c1),chargerProduit(c2)]);
-    if(!p1||!p2){z.innerHTML='<div class="error">❌ Un des produits est introuvable.</div>';return}
-    const info=(p)=>{
-      const ing=p.ingredients_text_fr||p.ingredients_text||'';
+    const results=await Promise.all([chargerProduit(c1),chargerProduit(c2)]);
+    const p1=results[0],p2=results[1];
+    if(!p1||!p2){z.innerHTML='<div class="error">Un des produits est introuvable.</div>';return}
+    function info(p){
+      const ing=p.ingredients_text_fr||p.ingredients_text||"";
       const add=p.additives_tags||[];
-      const nv=[...new Set([...detectNonVegan(ing),...add.filter(a=>a.includes('e120')||a.includes('e904')||a.includes('e901'))])];
+      const nv=[...new Set([...detectNonVegan(ing),...add.filter(function(a){return a.indexOf("e120")!==-1||a.indexOf("e904")!==-1||a.indexOf("e901")!==-1})])];
       const ins=detectInsects(ing);
-      const al=detectHealthWarnings(add.join(' '));
-      const alg=detectAllergens(p.allergens_tags||[]);
+      const al=detectHealthWarnings(add.join(" "));
       const ns=p.nutriscore_grade?p.nutriscore_grade.toUpperCase():null;
-      const sc=calculerScore(nv,ins,al,ns,alg);
-      return {nom:p.product_name_fr||p.product_name||'?',score:sc,vegan:nv.length===0,insectes:ins.length,alertes:al.length,nutriscore:ns,allergenes:alg.length};
-    };
+      const sc=calculerScore(nv,ins,al,ns);
+      return {nom:p.product_name_fr||p.product_name||"?",score:sc,vegan:nv.length===0,insectes:ins.length,alertes:al.length,nutriscore:ns};
+    }
     const i1=info(p1),i2=info(p2);
-    const w=(a,b)=>a>b?'bad':(a<b?'good':'');
-    z.innerHTML=`
-      <div class="card">
-        <div class="lbl">⚖️ Résultat de la comparaison</div>
-        <div class="cmp-grid">
-          <div class="cmp-cell"><strong>${i1.nom}</strong></div>
-          <div class="cmp-cell"><strong>${i2.nom}</strong></div>
-          <div class="cmp-label">Score global</div>
-          <div class="cmp-cell" style="color:${scoreColor(i1.score)}">${i1.score}</div>
-          <div class="cmp-cell" style="color:${scoreColor(i2.score)}">${i2.score}</div>
-          <div class="cmp-label">Vegan</div>
-          <div class="cmp-cell">${i1.vegan?'✅':'❌'}</div>
-          <div class="cmp-cell">${i2.vegan?'✅':'❌'}</div>
-          <div class="cmp-label">Insectes</div>
-          <div class="cmp-cell ${w(i1.insectes,i2.insectes)}">${i1.insectes>0?'⚠️ '+i1.insectes:'✅'}</div>
-          <div class="cmp-cell ${w(i2.insectes,i1.insectes)}">${i2.insectes>0?'⚠️ '+i2.insectes:'✅'}</div>
-          <div class="cmp-label">Additifs signalés</div>
-          <div class="cmp-cell ${w(i1.alertes,i2.alertes)}">${i1.alertes}</div>
-          <div class="cmp-cell ${w(i2.alertes,i1.alertes)}">${i2.alertes}</div>
-          <div class="cmp-label">Nutri-Score</div>
-          <div class="cmp-cell">${i1.nutriscore||'—'}</div>
-          <div class="cmp-cell">${i2.nutriscore||'—'}</div>
-          <div class="cmp-label">Allergènes</div>
-          <div class="cmp-cell ${w(i1.allergenes,i2.allergenes)}">${i1.allergenes}</div>
-          <div class="cmp-cell ${w(i2.allergenes,i1.allergenes)}">${i2.allergenes}</div>
-        </div>
-        <div style="margin-top:1rem;text-align:center;font-weight:700;color:${i1.score>=i2.score?'#6ee7a3':'#e07070'}">
-          🏆 Gagnant : ${i1.score>=i2.score?i1.nom:i2.nom}
-        </div>
-      </div>`;
+    const w=function(a,b){return a>b?"bad":(a<b?"good":"")};
+    z.innerHTML=
+      '<div class="card">'+
+        '<div class="lbl">Resultat de la comparaison</div>'+
+        '<div class="cmp-grid">'+
+          '<div class="cmp-cell"><strong>'+i1.nom+'</strong></div>'+
+          '<div class="cmp-cell"><strong>'+i2.nom+'</strong></div>'+
+          '<div class="cmp-label">Score global</div>'+
+          '<div class="cmp-cell" style="color:'+scoreColor(i1.score)+'">'+i1.score+'</div>'+
+          '<div class="cmp-cell" style="color:'+scoreColor(i2.score)+'">'+i2.score+'</div>'+
+          '<div class="cmp-label">Vegan</div>'+
+          '<div class="cmp-cell">'+(i1.vegan?"Oui":"Non")+'</div>'+
+          '<div class="cmp-cell">'+(i2.vegan?"Oui":"Non")+'</div>'+
+          '<div class="cmp-label">Insectes</div>'+
+          '<div class="cmp-cell '+w(i1.insectes,i2.insectes)+'">'+(i1.insectes>0?i1.insectes:"Non")+'</div>'+
+          '<div class="cmp-cell '+w(i2.insectes,i1.insectes)+'">'+(i2.insectes>0?i2.insectes:"Non")+'</div>'+
+          '<div class="cmp-label">Additifs signales</div>'+
+          '<div class="cmp-cell '+w(i1.alertes,i2.alertes)+'">'+i1.alertes+'</div>'+
+          '<div class="cmp-cell '+w(i2.alertes,i1.alertes)+'">'+i2.alertes+'</div>'+
+          '<div class="cmp-label">Nutri-Score</div>'+
+          '<div class="cmp-cell">'+(i1.nutriscore||"-")+'</div>'+
+          '<div class="cmp-cell">'+(i2.nutriscore||"-")+'</div>'+
+        '</div>'+
+        '<div style="margin-top:1rem;text-align:center;font-weight:700;color:'+(i1.score>=i2.score?"#6ee7a3":"#e07070")+'">Gagnant : '+(i1.score>=i2.score?i1.nom:i2.nom)+'</div>'+
+      '</div>';
   }catch(e){
-    z.innerHTML=`<div class="error">❌ Erreur : ${e.message}</div>`;
+    z.innerHTML='<div class="error">Erreur : '+e.message+'</div>';
   }
 }
 
 // ========================================================
-// 📜 HISTORIQUE
+// HISTORIQUE
 // ========================================================
 function afficherHistorique(){
-  const z=document.getElementById('historyList');
+  const z=document.getElementById("historyList");
   const h=getHist();
   if(h.length===0){
     z.innerHTML='<div class="panel" style="text-align:center;color:#8892b0">Aucun scan pour le moment</div>';
     return;
   }
-  z.innerHTML=h.map(item=>{
+  z.innerHTML=h.map(function(item){
     const d=new Date(item.date);
-    const dateStr=d.toLocaleDateString('fr-CH',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('fr-CH',{hour:'2-digit',minute:'2-digit'});
-    return `<div class="hist-item" data-code="${item.code}">
-      <div class="hist-name"><strong>${item.nom}</strong><br><span style="font-size:0.7rem;color:#8892b0">${dateStr}</span></div>
-      <span class="hist-score" style="background:${scoreColor(item.score)}">${item.score}</span>
-    </div>`;
-  }).join('');
-  z.querySelectorAll('.hist-item').forEach(el=>{
-    el.addEventListener('click',()=>{
-      const code=el.dataset.code;
-      switchTab('scan');
-      document.getElementById('barcode').value=code;
+    const dateStr=d.toLocaleDateString("fr-CH",{day:"2-digit",month:"2-digit"})+" "+d.toLocaleTimeString("fr-CH",{hour:"2-digit",minute:"2-digit"});
+    return '<div class="hist-item" data-code="'+item.code+'">'+
+      '<div class="hist-name"><strong>'+item.nom+'</strong><br><span style="font-size:0.7rem;color:#8892b0">'+dateStr+'</span></div>'+
+      '<span class="hist-score" style="background:'+scoreColor(item.score)+'">'+item.score+'</span>'+
+    '</div>';
+  }).join("");
+  const items=z.querySelectorAll(".hist-item");
+  for(let i=0;i<items.length;i++){
+    items[i].addEventListener("click",function(){
+      const code=this.dataset.code;
+      switchTab("scan");
+      document.getElementById("barcode").value=code;
       analyserCodeBarres(code);
     });
-  });
+  }
 }
 
 // ========================================================
-// 🎬 ONGLETS
+// ONGLETS
 // ========================================================
 function switchTab(name){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
-  document.getElementById('tab-scan').classList.toggle('hidden',name!=='scan');
-  document.getElementById('tab-compare').classList.toggle('hidden',name!=='compare');
-  document.getElementById('tab-history').classList.toggle('hidden',name!=='history');
-  if(name==='history') afficherHistorique();
+  const tabs=document.querySelectorAll(".tab");
+  for(let i=0;i<tabs.length;i++){
+    tabs[i].classList.toggle("active",tabs[i].dataset.tab===name);
+  }
+  document.getElementById("tab-scan").classList.toggle("hidden",name!=="scan");
+  document.getElementById("tab-compare").classList.toggle("hidden",name!=="compare");
+  document.getElementById("tab-history").classList.toggle("hidden",name!=="history");
+  if(name==="history") afficherHistorique();
 }
-document.querySelectorAll('.tab').forEach(t=>{
-  t.addEventListener('click',()=>switchTab(t.dataset.tab));
-});
+const tabEls=document.querySelectorAll(".tab");
+for(let i=0;i<tabEls.length;i++){
+  tabEls[i].addEventListener("click",function(){switchTab(this.dataset.tab)});
+}
 
 // ========================================================
-// 🎬 ÉVÉNEMENTS SCAN
+// EVENEMENTS
 // ========================================================
-document.getElementById('btnScan').addEventListener('click',()=>{
-  const code=document.getElementById('barcode').value.trim();
+document.getElementById("btnScan").addEventListener("click",function(){
+  const code=document.getElementById("barcode").value.trim();
   if(code) analyserCodeBarres(code);
 });
-document.getElementById('barcode').addEventListener('keydown',(e)=>{
-  if(e.key==='Enter'){e.preventDefault();const c=document.getElementById('barcode').value.trim();if(c)analyserCodeBarres(c)}
+document.getElementById("barcode").addEventListener("keydown",function(e){
+  if(e.key==="Enter"){
+    e.preventDefault();
+    const c=document.getElementById("barcode").value.trim();
+    if(c) analyserCodeBarres(c);
+  }
 });
-document.getElementById('btnCompare').addEventListener('click',comparer);
-document.getElementById('btnClearHist').addEventListener('click',()=>{
-  if(confirm('Effacer tout l\'historique ?')){setHist([]);afficherHistorique()}
+document.getElementById("btnCompare").addEventListener("click",comparer);
+document.getElementById("btnClearHist").addEventListener("click",function(){
+  if(confirm("Effacer tout historique ?")){setHist([]);afficherHistorique()}
 });
 
 // ========================================================
-// 📷 SCAN CAMÉRA
+// CAMERA
 // ========================================================
 let html5QrCode=null;
 async function demarrerCamera(){
-  const zone=document.getElementById('cameraZone');
-  zone.classList.remove('hidden');
+  const zone=document.getElementById("cameraZone");
+  zone.classList.remove("hidden");
   if(!html5QrCode) html5QrCode=new Html5Qrcode("reader");
   try{
     await html5QrCode.start(
@@ -569,31 +580,28 @@ async function demarrerCamera(){
           Html5QrcodeSupportedFormats.QR_CODE
         ]
       },
-      (texteDecode)=>{
-        document.getElementById('barcode').value=texteDecode;
+      function(texteDecode){
+        document.getElementById("barcode").value=texteDecode;
         arreterCamera();
         analyserCodeBarres(texteDecode);
       },
-      ()=>{}
+      function(){}
     );
   }catch(err){
-    alert("❌ Impossible d'accéder à la caméra.\n\nVérifie que tu as autorisé la caméra dans Safari.\n\nDétail : "+err.message);
-    zone.classList.add('hidden');
+    alert("Impossible acceder camera.\n\nVerifie autorisation dans Safari.\n\n"+err.message);
+    zone.classList.add("hidden");
   }
 }
 async function arreterCamera(){
   if(html5QrCode){
     try{await html5QrCode.stop();html5QrCode.clear()}catch(e){}
   }
-  document.getElementById('cameraZone').classList.add('hidden');
+  document.getElementById("cameraZone").classList.add("hidden");
 }
-document.getElementById('btnCamera').addEventListener('click',demarrerCamera);
-document.getElementById('btnStopCamera').addEventListener('click',arreterCamera);
+document.getElementById("btnCamera").addEventListener("click",demarrerCamera);
+document.getElementById("btnStopCamera").addEventListener("click",arreterCamera);
 
-// ========================================================
-// 🚀 INIT
-// ========================================================
-console.log('✅ Scan Vegan & Santé v3 — chargé');
+console.log("Scan Vegan & Sante v3 charge");
 </script>
 </body>
 </html>
