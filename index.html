@@ -243,29 +243,41 @@ function detectAllergens(tags){
 // 📊 SCORE GLOBAL /100
 // ========================================================
 function calculerScore(nonVegan,insectes,alertes,nutriscore,allergenes){
-  let score=100;
-  score-=Math.min(nonVegan.length*8,40);
-  if(insectes.length>0) score-=30;
-  alertes.forEach(a=>{score-=(a.level==='danger'?10:5)});
-  if(nutriscore){
-    const pts={A:0,B:5,C:10,D:15,E:20};
-    score-=(pts[nutriscore]||0);
-  }
+  // Base de départ selon le Nutri-Score (barème central)
+  // A=95, B=75, C=60, D=42, E=25
+  let score;
+  if(nutriscore==='A') score=95;
+  else if(nutriscore==='B') score=75;
+  else if(nutriscore==='C') score=60;
+  else if(nutriscore==='D') score=42;
+  else if(nutriscore==='E') score=25;
+  else score=60; // pas de Nutri-Score = neutre
+
+  // Pénalités nutritionnelles / éthiques
+  score-=Math.min(nonVegan.length*5,30);       // -5 par ingrédient non vegan (max -30)
+  if(insectes.length>0) score-=25;             // insectes = grosse pénalité
+  alertes.forEach(a=>{score-=(a.level==='danger'?8:4)});  // additifs dangereux
+
+  // ⚠️ Les allergènes ne pénalisent PAS le score
+  // (ce sont des informations, pas des dangers)
+
+  return Math.max(0,Math.min(100,score));
+}
   if(allergenes.length>0) score-=Math.min(allergenes.length*2,10);
   return Math.max(0,Math.min(100,score));
 }
 function scoreColor(s){
-  if(s>=80) return '#2d8a4e';
-  if(s>=60) return '#6ee7a3';
-  if(s>=40) return '#d4a017';
-  if(s>=20) return '#e07070';
-  return '#c0392b';
+  if(s>=85) return '#2d8a4e';  // vert foncé (A)
+  if(s>=70) return '#6ee7a3';  // vert clair (B)
+  if(s>=50) return '#d4a017';  // orange (C)
+  if(s>=30) return '#e07070';  // rouge clair (D)
+  return '#c0392b';            // rouge foncé (E)
 }
 function scoreLabel(s){
-  if(s>=80) return 'EXCELLENT';
-  if(s>=60) return 'BON';
-  if(s>=40) return 'MOYEN';
-  if(s>=20) return 'MAUVAIS';
+  if(s>=85) return 'EXCELLENT';
+  if(s>=70) return 'BON';
+  if(s>=50) return 'MOYEN';
+  if(s>=30) return 'MAUVAIS';
   return 'À ÉVITER';
 }
 
